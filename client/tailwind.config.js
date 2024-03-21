@@ -12,6 +12,8 @@ export default {
     extend: {
       colors: {
         primary: "#4B0085",
+        alternate: "#818181",
+        accent: "#D9D9D9",
 
         dark: {
           bgPrimary: "#1A202C",
