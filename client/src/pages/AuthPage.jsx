@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Input, Button } from "@nextui-org/react";
+import { Link } from "@tanstack/react-router";
 import { Eye, EyeSlash } from "@phosphor-icons/react";
 
 import googleIcon from "/icons/google-icon.svg";
@@ -20,9 +21,20 @@ function AuthPage() {
         <div className="w-[360px] flex justify-center items-center flex-col text-black gap-6">
           <div className="flex justify-center items-center flex-col gap-2">
             <h1 className="text-4xl font-[Satoshi-Bold]">Create an account</h1>
-            <p>Already have an account? Log In</p>
+            <p>
+              Already have an account?{" "}
+              <Link to="/auth/login" className="text-primary underline">
+                Log In
+              </Link>
+            </p>
           </div>
-          <div className="w-full flex justify-center items-center flex-col gap-2">
+          <form
+            className="w-full flex justify-center items-center flex-col gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              console.log("Submitted");
+            }}
+          >
             <Input
               type="email"
               variant="bordered"
@@ -32,22 +44,25 @@ function AuthPage() {
               classNames={{
                 inputWrapper:
                   "border-1 border-accent rounded-md rounded-[12px] group-data-[focus=true]:border-alternate h-[50px]",
-                label: "group-data-[focus=true]:text-alternate",
+                label:
+                  "group-data-[focus=true]:text-alternate group-data-[filled=true]:text-alternate text-alternate",
               }}
+              isRequired
             />
             <Input
               variant="bordered"
               label="Enter password"
-              isClearable
               fullWidth
               classNames={{
                 inputWrapper:
                   "border-1 border-accent rounded-md rounded-[12px] group-data-[focus=true]:border-alternate h-[50px]",
-                label: "group-data-[focus=true]:text-alternate",
+                label:
+                  "group-data-[focus=true]:text-alternate group-data-[filled=true]:text-alternate text-alternate",
               }}
+              isRequired
               endContent={
                 <button
-                  className="focus:outline-none"
+                  className="focus:outline-none border-none outline-none self-center"
                   type="button"
                   onClick={toggleVisibility}
                 >
@@ -72,11 +87,12 @@ function AuthPage() {
             />
             <Button
               size="md"
-              className="bg-primary w-full h-[50px] text-lg font-[Satoshi-Medium] mt-1"
+              className="bg-primary w-full h-[50px] text-md font-[Satoshi-Medium] mt-1"
+              type="submit"
             >
               Next
             </Button>
-          </div>
+          </form>
           <div className="w-full relative flex justify-center">
             <div className="bg-accent w-full min-w-full h-[1px] rounded-md" />
             <div className="text-alternate absolute bg-white min-w-[60px] -top-3 text-center">
@@ -104,8 +120,14 @@ function AuthPage() {
             </Button>
           </div>
           <p className="text-sm text-center">
-            By signing up, you agree to the Terms of Use and <br /> Privacy
-            Policy
+            By signing up, you agree to the{" "}
+            <Link to="" className="text-primary underline">
+              Terms of Use
+            </Link>{" "}
+            and <br />{" "}
+            <Link to="" className="text-primary underline">
+              Privacy Policy
+            </Link>
           </p>
         </div>
       </div>
