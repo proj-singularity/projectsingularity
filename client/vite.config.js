@@ -10,4 +10,13 @@ export default defineConfig({
       plugins: [tailwindcss()],
     },
   },
+  resolve: {
+    alias: {
+      src: "/src",
+      components: "/src/components",
+      pages: "/src/pages",
+      assets: "/src/assets",
+      utils: "/src/utils",
+    },
+  },
 });
