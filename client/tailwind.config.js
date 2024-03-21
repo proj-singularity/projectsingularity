@@ -2,6 +2,7 @@ import { nextui } from "@nextui-org/react";
 
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: "media",
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -25,7 +26,6 @@ export default {
       },
     },
   },
-  darkMode: "class",
   plugins: [
     nextui({
       prefix: "nextui", // prefix for themes variables
