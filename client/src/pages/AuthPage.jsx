@@ -86,7 +86,7 @@ function AuthPage() {
           <div className="w-full flex justify-center items-center flex-col gap-2">
             <Button
               size="sm"
-              className="bg-white text-black border-1 border-accent w-full h-[50px] text-md font-[Satoshi-Medium] flex items-center justify-center gap-4 rounded-[12px]"
+              className="bg-white text-black border-1 border-accent w-full h-[50px] text-md font-[Satoshi-Medium] flex items-center justify-center gap-4 rounded-[12px] hover:border-alternate transition-all 200ms ease-in"
               startContent={
                 <img src={googleIcon} alt="google icon" className="w-[20px]" />
               }
@@ -95,7 +95,7 @@ function AuthPage() {
             </Button>
             <Button
               size="sm"
-              className="bg-white text-black border-1 border-accent w-full h-[50px] text-md font-[Satoshi-Medium] flex items-center justify-center gap-4 rounded-[12px]"
+              className="bg-white text-black border-1 border-accent w-full h-[50px] text-md font-[Satoshi-Medium] flex items-center justify-center gap-4 rounded-[12px] hover:border-alternate transition-all 200ms ease-in"
               startContent={
                 <img src={githubIcon} alt="github icon" className="w-[20px]" />
               }
