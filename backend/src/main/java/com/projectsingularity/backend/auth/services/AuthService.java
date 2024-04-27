@@ -28,8 +28,8 @@ public class AuthService implements UserDetailsService {
     private final TokenRepository tokenRepository;
     private final EmailService emailService;
 
-//    @Value("${application.mailing.frontend.verificationUrl}")
-//    private String activationUrl;
+//    @Value("${mailing.frontend.verificationUrl}")
+//    private String verificationUrl;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -78,20 +78,21 @@ public class AuthService implements UserDetailsService {
         user.get().setEnabled(true);
         userRepository.save(user.get());
 
+
         savedToken.setValidatedAt(LocalDateTime.now());
         tokenRepository.save(savedToken);
     }
 
     private void sendVerificationEmail(User user) throws MessagingException {
-        String newToken = saveVerificationToken(user);
-
+        String verificationCode = saveVerificationToken(user);
+    
         emailService.sendEmail(
                 user.getEmail(),
                 user.getFullName(),
                 EmailTemplateName.VERIFY_EMAIL,
 //                verificationUrl,
                 "",
-                newToken,
+                verificationCode,
                 "Account Verification"
         );
     }
