@@ -3,6 +3,9 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: create-drop
+
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/ps_dev
@@ -11,9 +14,34 @@ spring:
 
   data:
     redis:
-      host: redis
+      host: localhost
       port: 6379
       database: 0
 
+  mail:
+    host: localhost
+    port: 1025
+    username: ps_dev
+    password: ps_dev
+    properties:
+      mail:
+        smtp:
+          trust: "*"
+        auth: true
+        starttls:
+          enabled: true
+        connectiontimeout: 5000
+        timeout: 3000
+        writetimeout: 5000
+
 server:
   port: 8091
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+
+
+#  mailing:
+#    frontend:
+#      verificationUrl: http://localhost:5173/verifyaccount
