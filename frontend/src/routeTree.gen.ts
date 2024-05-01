@@ -11,13 +11,31 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
-import { Route as AuthImport } from './routes/auth'
+import { Route as VerificationImport } from './routes/verification'
+import { Route as SignupImport } from './routes/signup'
+import { Route as SigninImport } from './routes/signin'
+import { Route as OnboardingImport } from './routes/onboarding'
 import { Route as IndexImport } from './routes/index'
 
 // Create/Update Routes
 
-const AuthRoute = AuthImport.update({
-  path: '/auth',
+const VerificationRoute = VerificationImport.update({
+  path: '/verification',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const SignupRoute = SignupImport.update({
+  path: '/signup',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const SigninRoute = SigninImport.update({
+  path: '/signin',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const OnboardingRoute = OnboardingImport.update({
+  path: '/onboarding',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -34,8 +52,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
-    '/auth': {
-      preLoaderRoute: typeof AuthImport
+    '/onboarding': {
+      preLoaderRoute: typeof OnboardingImport
+      parentRoute: typeof rootRoute
+    }
+    '/signin': {
+      preLoaderRoute: typeof SigninImport
+      parentRoute: typeof rootRoute
+    }
+    '/signup': {
+      preLoaderRoute: typeof SignupImport
+      parentRoute: typeof rootRoute
+    }
+    '/verification': {
+      preLoaderRoute: typeof VerificationImport
       parentRoute: typeof rootRoute
     }
   }
@@ -43,6 +73,12 @@ declare module '@tanstack/react-router' {
 
 // Create and export the route tree
 
-export const routeTree = rootRoute.addChildren([IndexRoute, AuthRoute])
+export const routeTree = rootRoute.addChildren([
+  IndexRoute,
+  OnboardingRoute,
+  SigninRoute,
+  SignupRoute,
+  VerificationRoute,
+])
 
 /* prettier-ignore-end */
