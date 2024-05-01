@@ -1,2 +1,13 @@
-package com.projectsingularity.backend.root;public class HealthCheck {
+package com.projectsingularity.backend.root;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class HealthCheck {
+
+    @GetMapping("/health")
+    public String healthCheck() {
+        return "OK";
+    }
 }
