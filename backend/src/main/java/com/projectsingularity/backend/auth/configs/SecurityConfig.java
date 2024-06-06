@@ -141,9 +141,14 @@ public class SecurityConfig {
                                                                              // invalidated when the user logs out
                                                 .deleteCookies("SESSION")
                                                 .permitAll())
-                                .exceptionHandling(e -> e
-                                                .authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint(
-                                                                "http://localhost:5173/login")))
+                                .exceptionHandling(exceptionHandling -> exceptionHandling
+                                                .authenticationEntryPoint((request, response, authException) -> {
+                                                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                                        response.setContentType("application/json");
+                                                        response.getWriter().write(
+                                                                        "{\"message\": \"You need to log in first.\"}");
+                                                        response.getWriter().flush();
+                                                }))
                                 .sessionManagement(s -> s
                                                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                                                 .sessionFixation().migrateSession()
