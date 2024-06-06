@@ -1,4 +1,4 @@
-package com.projectsingularity.backend.auth.services;
+package com.projectsingularity.backend.auth.utils;
 
 import lombok.Getter;
 
@@ -6,7 +6,6 @@ import lombok.Getter;
 public enum EmailTemplateName {
 
     VERIFY_EMAIL("verify_email");
-
 
     private final String name;
 

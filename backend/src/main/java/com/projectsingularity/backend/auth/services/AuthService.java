@@ -1,30 +1,30 @@
 package com.projectsingularity.backend.auth.services;
 
-import com.projectsingularity.backend.auth.dtos.RegisterDTO;
-import com.projectsingularity.backend.auth.entities.Token;
-import com.projectsingularity.backend.auth.entities.User;
-import com.projectsingularity.backend.auth.repositories.TokenRepository;
-import com.projectsingularity.backend.auth.repositories.UserRepository;
-import jakarta.mail.MessagingException;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Optional;
 
-import org.springframework.boot.autoconfigure.neo4j.Neo4jProperties.Authentication;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
-import java.time.LocalDateTime;
-import java.util.Optional;
+import com.projectsingularity.backend.auth.dtos.RegisterDTO;
+import com.projectsingularity.backend.auth.entities.Token;
+import com.projectsingularity.backend.auth.entities.User;
+import com.projectsingularity.backend.auth.repositories.TokenRepository;
+import com.projectsingularity.backend.auth.repositories.UserRepository;
+import com.projectsingularity.backend.auth.utils.EmailTemplateName;
+
+import jakarta.mail.MessagingException;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class AuthService implements UserDetailsService {
     private final UserRepository userRepository;
@@ -32,60 +32,59 @@ public class AuthService implements UserDetailsService {
     private final TokenRepository tokenRepository;
     private final EmailService emailService;
 
-//    @Value("${mailing.frontend.verificationUrl}")
-//    private String verificationUrl;
-
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(username);
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        User user = userRepository.findByEmail(email);
+
         if (user == null) {
-            throw new UsernameNotFoundException("User not found with email: " + username);
+            throw new UsernameNotFoundException("No user found with username: " + email);
         }
 
         return user;
     }
 
-    // Register
-    public ResponseEntity<?> register(RegisterDTO registerDTO) throws MessagingException {
-        if (userRepository.findByEmail(registerDTO.getEmail()) != null) {
-            return new ResponseEntity<>("User already exists", HttpStatus.CONFLICT);
+    public User registerUser(RegisterDTO registerDTO) throws MessagingException {
+        if (userRepository.existsByEmail(registerDTO.getEmail())) {
+            throw new RuntimeException("User with email " + registerDTO.getEmail() + " already exists");
+        } else {
+            User user = new User();
+            user.setEmail(registerDTO.getEmail());
+            user.setPassword(passwordEncoder.encode(registerDTO.getPassword()));
+            user.setFirstName(registerDTO.getFirstName());
+            user.setLastName(registerDTO.getLastName());
+            user.setRole("ROLE_USER");
+            user.setEnabled(false);
+            userRepository.save(user);
+            sendVerificationEmail(user);
+
+            return user;
         }
-
-        User user = User.builder()
-                .email(registerDTO.getEmail())
-                .password(passwordEncoder.encode(registerDTO.getPassword()))
-                .firstName(registerDTO.getFirstName())
-                .lastName(registerDTO.getLastName())
-                .accountLocked(false)
-                .enabled(false)
-                .build();
-
-        User savedUser = userRepository.save(user);
-        sendVerificationEmail(savedUser);
-
-        return new ResponseEntity<>("Registered successfully! Please check your email to complete signing up.", HttpStatus.CREATED);
     }
 
     @Transactional
     public ResponseEntity<?> verifyEmail(String token) {
         try {
             Token savedToken = tokenRepository.findByToken(token)
-                .orElseThrow(() -> new RuntimeException("Invalid token :( Redirecting you to the signup page shortly"));
-    
+                    .orElseThrow(
+                            () -> new RuntimeException("Invalid token :( Redirecting you to the signup page shortly"));
+
             if (LocalDateTime.now().isAfter(savedToken.getExpiresAt())) {
                 sendVerificationEmail(savedToken.getUser());
-                throw new RuntimeException("Verification token has expired. A new token has been sent to the same email address");
+                throw new RuntimeException(
+                        "Verification token has expired. A new token has been sent to the same email address");
             }
-    
-            Optional<User> user = Optional.ofNullable(userRepository.findById(savedToken.getUser().getId()).orElseThrow(() -> new RuntimeException("User not found")));
-    
+
+            Optional<User> user = Optional.ofNullable(userRepository.findById(savedToken.getUser().getId())
+                    .orElseThrow(() -> new RuntimeException("User not found")));
+
             user.get().setEnabled(true);
             userRepository.save(user.get());
-    
+
             savedToken.setValidatedAt(LocalDateTime.now());
             tokenRepository.save(savedToken);
-    
-            return new ResponseEntity<>("Hurrah! Email verified successfully :) Redirecting you shortly", HttpStatus.OK);
+
+            return new ResponseEntity<>("Hurrah! Email verified successfully :) Redirecting you shortly",
+                    HttpStatus.OK);
         } catch (RuntimeException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (MessagingException e) {
@@ -95,15 +94,14 @@ public class AuthService implements UserDetailsService {
 
     private void sendVerificationEmail(User user) throws MessagingException {
         String verificationCode = saveVerificationToken(user);
-    
+
         emailService.sendEmail(
                 user.getEmail(),
                 user.getFullName(),
                 EmailTemplateName.VERIFY_EMAIL,
-                "http://localhost:5173/verification?token=" + verificationCode,
+                "http://localhost:5000/verification?token=" + verificationCode,
                 verificationCode,
-                "Account Verification"
-        );
+                "Account Verification");
     }
 
     private String saveVerificationToken(User user) {
@@ -133,5 +131,4 @@ public class AuthService implements UserDetailsService {
 
         return codeBuilder.toString();
     }
-
 }

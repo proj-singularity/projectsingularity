@@ -13,7 +13,6 @@ import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Entity
 @Getter
@@ -29,8 +28,7 @@ public class User implements UserDetails, Principal {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    private List<Role> roles;
+    private String role;
 
     @Column(unique = true)
     private String username;
@@ -52,7 +50,6 @@ public class User implements UserDetails, Principal {
     private boolean enabled;
     private boolean accountLocked;
 
-
     @Override
     public String getName() {
         return email;
@@ -60,7 +57,7 @@ public class User implements UserDetails, Principal {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return this.roles.stream().map(r -> new SimpleGrantedAuthority(r.getName())).collect(Collectors.toList());
+        return List.of(new SimpleGrantedAuthority(role));
     }
 
     @Override
