@@ -1,9 +1,10 @@
 package com.projectsingularity.backend.auth.repositories;
 
-import com.projectsingularity.backend.auth.entities.Token;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.Optional;
+import com.projectsingularity.backend.auth.entities.Token;
 
 public interface TokenRepository extends JpaRepository<Token, Integer> {
     Optional<Token> findByToken(String token);

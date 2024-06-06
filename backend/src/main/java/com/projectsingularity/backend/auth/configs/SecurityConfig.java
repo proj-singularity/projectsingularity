@@ -29,78 +29,65 @@ import java.util.Collections;
 @EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfig {
 
-    @Bean
-    public CorsFilter corsFilter() {
-        final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        final CorsConfiguration config = new CorsConfiguration();
-        config.setAllowCredentials(true);
-        config.setAllowedOrigins(Collections.singletonList("http://localhost:5173"));
-        config.setAllowedHeaders(Arrays.asList(
-                HttpHeaders.ORIGIN,
-                HttpHeaders.CONTENT_TYPE,
-                HttpHeaders.ACCEPT,
-                HttpHeaders.AUTHORIZATION
-        ));
-        config.setAllowedMethods(Arrays.asList(
-                "GET",
-                "POST",
-                "DELETE",
-                "PUT",
-                "PATCH"
-        ));
-        source.registerCorsConfiguration("/**", config);
-        return new CorsFilter(source);
+        @Bean
+        public CorsFilter corsFilter() {
+                final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                final CorsConfiguration config = new CorsConfiguration();
+                config.setAllowCredentials(true);
+                config.setAllowedOrigins(Collections.singletonList("http://localhost:3000"));
+                config.setAllowedHeaders(Arrays.asList(
+                                HttpHeaders.ORIGIN,
+                                HttpHeaders.CONTENT_TYPE,
+                                HttpHeaders.ACCEPT,
+                                HttpHeaders.AUTHORIZATION));
+                config.setAllowedMethods(Arrays.asList(
+                                "GET",
+                                "POST",
+                                "DELETE",
+                                "PUT",
+                                "PATCH"));
+                source.registerCorsConfiguration("/**", config);
+                return new CorsFilter(source);
 
-    }
+        }
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        http
-                .cors(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(request ->
-                        request.requestMatchers("/api/auth/**").permitAll()
-                                .requestMatchers("/health").permitAll()
-                                .anyRequest().authenticated()
-                )
-                .formLogin(form ->
-                        form.loginPage("/api/auth/login")
-                                .usernameParameter("email")
-                                .failureUrl("/api/auth/login?error=true")
-                                .defaultSuccessUrl("/api/auth/welcome")
-                                .permitAll()
-                )
-                .logout(logout ->
-                        logout.logoutUrl("/api/auth/logout")
-                                .logoutSuccessUrl("/api/auth/login?logoutSuccess=true")
-                                .deleteCookies("JSESSIONID")
-                                .permitAll()
-                )
-                .exceptionHandling(
-                        e -> e.authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/api/auth/login"))
-                )
-                .sessionManagement(s ->
-                        s.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                                .sessionFixation().migrateSession()
-                                .invalidSessionUrl("/api/auth/login")
-                                .sessionAuthenticationErrorUrl("/api/auth/login")
-                                .maximumSessions(1)
-                                .maxSessionsPreventsLogin(true)
-                                .expiredUrl("/api/auth/login")
-                );
+                http
+                                .csrf(AbstractHttpConfigurer::disable)
+                                .authorizeHttpRequests(request -> request.requestMatchers("/api/auth/**").permitAll()
+                                                .requestMatchers("/health").permitAll()
+                                                .anyRequest().authenticated())
+                                .formLogin(form -> form.loginPage("/api/auth/login")
+                                                .usernameParameter("email")
+                                                .failureUrl("/api/auth/login?error=true")
+                                                .permitAll())
+                                .logout(logout -> logout.logoutUrl("/api/auth/logout")
+                                                .logoutSuccessUrl("/api/auth/login?logoutSuccess=true")
+                                                .deleteCookies("JSESSIONID")
+                                                .permitAll())
+                                .exceptionHandling(
+                                                e -> e.authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint(
+                                                                "/api/auth/login")))
+                                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                                                .sessionFixation().migrateSession()
+                                                .invalidSessionUrl("/api/auth/login")
+                                                .sessionAuthenticationErrorUrl("/api/auth/login")
+                                                .maximumSessions(1)
+                                                .maxSessionsPreventsLogin(true)
+                                                .expiredUrl("/api/auth/login"));
 
-        return http.build();
-    }
+                return http.build();
+        }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
+        @Bean
+        public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+                return config.getAuthenticationManager();
+        }
 }
-
