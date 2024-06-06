@@ -48,7 +48,6 @@ public class User implements UserDetails, Principal {
     private LocalDateTime updatedAt;
 
     private boolean enabled;
-    private boolean accountLocked;
 
     @Override
     public String getName() {
@@ -77,7 +76,7 @@ public class User implements UserDetails, Principal {
 
     @Override
     public boolean isAccountNonLocked() {
-        return accountLocked;
+        return true;
     }
 
     @Override

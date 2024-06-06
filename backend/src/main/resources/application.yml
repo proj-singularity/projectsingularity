@@ -41,7 +41,6 @@ logging:
   level:
     org.springframework.security: DEBUG
 
-
 mailing:
   frontend:
     verificationUrl: http://localhost:5173/verifyaccount

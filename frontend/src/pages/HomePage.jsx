@@ -5,7 +5,7 @@ function HomePage() {
     <div>
       HomePage
       <br />
-      <Link to="/auth">
+      <Link to="/signup">
         <button className="bg-white text-black cursor-pointer w-fit text-center m-20 p-6 rounded-lg">
           Go to Auth Page
         </button>

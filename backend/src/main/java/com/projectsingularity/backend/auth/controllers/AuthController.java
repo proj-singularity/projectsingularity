@@ -13,6 +13,9 @@ import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.http.ResponseEntity;
 
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,15 +29,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class AuthController {
 
     private final AuthService authService;
+    Map<String, String> response = new HashMap<>();
 
     @PostMapping("register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterDTO registerDTO, HttpServletRequest request) {
         try {
             authService.registerUser(registerDTO);
-
-            return ResponseEntity.ok("User registered successfully");
+            response.put("message", "User registered successfully");
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
         }
     }
 
@@ -43,5 +48,4 @@ public class AuthController {
         authService.verifyEmail(token);
         return ResponseEntity.ok("Email verified successfully");
     }
-
 }

@@ -5,21 +5,33 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisHttpSession;
+
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -27,6 +39,7 @@ import java.util.Collections;
 @EnableWebSecurity
 @RequiredArgsConstructor
 @EnableMethodSecurity(securedEnabled = true)
+@EnableRedisHttpSession
 public class SecurityConfig {
 
         @Bean
@@ -34,7 +47,7 @@ public class SecurityConfig {
                 final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 final CorsConfiguration config = new CorsConfiguration();
                 config.setAllowCredentials(true);
-                config.setAllowedOrigins(Collections.singletonList("http://localhost:3000"));
+                config.setAllowedOrigins(Collections.singletonList("http://localhost:5173"));
                 config.setAllowedHeaders(Arrays.asList(
                                 HttpHeaders.ORIGIN,
                                 HttpHeaders.CONTENT_TYPE,
@@ -52,31 +65,95 @@ public class SecurityConfig {
         }
 
         @Bean
-        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                        AuthenticationConfiguration authenticationConfiguration)
+                        throws Exception {
+                UsernamePasswordAuthenticationFilter customUsernamePasswordAuthFilter = new UsernamePasswordAuthenticationFilter() {
 
+                        private final ObjectMapper objectMapper = new ObjectMapper();
+
+                        @Override
+                        public Authentication attemptAuthentication(HttpServletRequest request,
+                                        HttpServletResponse response)
+                                        throws AuthenticationException {
+                                try {
+                                        JsonNode node = objectMapper.readTree(request.getInputStream());
+                                        String username = node.get("email").textValue();
+                                        String password = node.get("password").textValue();
+
+                                        request.setAttribute("username", username);
+                                        request.setAttribute("password", password);
+                                } catch (IOException e) {
+                                        throw new AuthenticationServiceException("ERROR READING REQUEST", e);
+                                }
+
+                                return super.attemptAuthentication(request, response);
+                        }
+
+                        @Override
+                        protected String obtainUsername(HttpServletRequest request) {
+                                return (String) request.getAttribute("username");
+                        }
+
+                        @Override
+                        protected String obtainPassword(HttpServletRequest request) {
+                                return (String) request.getAttribute("password");
+                        }
+                };
+                System.out.println(authenticationConfiguration.getAuthenticationManager());
+                customUsernamePasswordAuthFilter.setFilterProcessesUrl("/api/auth/login");
+                customUsernamePasswordAuthFilter.setAuthenticationManager(
+                                authenticationConfiguration.getAuthenticationManager());
+
+                customUsernamePasswordAuthFilter
+                                .setAuthenticationSuccessHandler((request, response, authentication) -> {
+                                        response.setStatus(200);
+                                        response.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+                                        response.getWriter().write("{\"success\": true}");
+                                        response.getWriter().flush();
+                                });
+
+                customUsernamePasswordAuthFilter.setAuthenticationFailureHandler(
+                                (request, response, exception) -> {
+                                        response.setStatus(401);
+                                        response.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+                                        response.getWriter().write("{\"success\": false}");
+                                        response.getWriter().flush();
+                                });
                 http
                                 .csrf(AbstractHttpConfigurer::disable)
-                                .authorizeHttpRequests(request -> request.requestMatchers("/api/auth/**").permitAll()
+                                .authorizeHttpRequests(request -> request
+                                                .requestMatchers("/api/auth/**").permitAll()
                                                 .requestMatchers("/health").permitAll()
                                                 .anyRequest().authenticated())
-                                .formLogin(form -> form.loginPage("/api/auth/login")
-                                                .usernameParameter("email")
-                                                .failureUrl("/api/auth/login?error=true")
+                                .formLogin(formLogin -> formLogin.disable())
+                                .securityContext(context -> context.requireExplicitSave(false))
+                                .logout(logout -> logout
+                                                .logoutUrl("/api/auth/logout")
+                                                .logoutSuccessHandler((request, response, authentication) -> {
+                                                        response.setStatus(HttpServletResponse.SC_OK);
+                                                        response.setHeader(HttpHeaders.CONTENT_TYPE,
+                                                                        "application/json");
+                                                        response.getWriter().write("{\"success\": true}");
+                                                        response.getWriter().flush();
+                                                })
+                                                .invalidateHttpSession(true) // specifies that the HttpSession should be
+                                                                             // invalidated when the user logs out
+                                                .deleteCookies("SESSION")
                                                 .permitAll())
-                                .logout(logout -> logout.logoutUrl("/api/auth/logout")
-                                                .logoutSuccessUrl("/api/auth/login?logoutSuccess=true")
-                                                .deleteCookies("JSESSIONID")
-                                                .permitAll())
-                                .exceptionHandling(
-                                                e -> e.authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint(
-                                                                "/api/auth/login")))
-                                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                                .exceptionHandling(e -> e
+                                                .authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint(
+                                                                "http://localhost:5173/login")))
+                                .sessionManagement(s -> s
+                                                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                                                 .sessionFixation().migrateSession()
-                                                .invalidSessionUrl("/api/auth/login")
-                                                .sessionAuthenticationErrorUrl("/api/auth/login")
+                                                .invalidSessionUrl("http://localhost:5173/login")
+                                                .sessionAuthenticationErrorUrl("http://localhost:5173/login")
                                                 .maximumSessions(1)
                                                 .maxSessionsPreventsLogin(true)
-                                                .expiredUrl("/api/auth/login"));
+                                                .expiredUrl("http://localhost:5173/login"));
+
+                http.addFilterBefore(customUsernamePasswordAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();
         }

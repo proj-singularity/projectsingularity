@@ -9,36 +9,37 @@ import singularity from "/singularity.svg";
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
 
-function SignIn() {
+function LogIn() {
   const [isVisible, setIsVisible] = useState(false);
 
   const toggleVisibility = () => setIsVisible(!isVisible);
 
   const mutation = useMutation({
     mutationFn: async (values) => {
-      const response = await fetch("http://localhost:8091/api/auth/register", {
+      console.log(values);
+      const response = await fetch("http://localhost:8091/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(values.value),
       });
-      return await response.json();
+
+      return response;
     },
   });
 
-  const handleRegistration = async (values) => {
-    await mutation.mutateAsync(values);
+  const handleLogIn = async (values) => {
+    const response = await mutation.mutateAsync(values);
+    return response;
   };
 
   const form = useForm({
     defaultValues: {
       email: "",
       password: "",
-      firstName: "",
-      lastName: "",
     },
-    onSubmit: handleRegistration,
+    onSubmit: (values) => handleLogIn(values.value),
   });
 
   return (
@@ -188,4 +189,4 @@ function SignIn() {
   );
 }
 
-export default SignIn;
+export default LogIn;

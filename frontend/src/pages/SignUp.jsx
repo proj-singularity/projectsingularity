@@ -23,6 +23,8 @@ function SignUp() {
         },
         body: JSON.stringify(values.value),
       });
+
+      console.log(response);
       return await response.json();
     },
   });
