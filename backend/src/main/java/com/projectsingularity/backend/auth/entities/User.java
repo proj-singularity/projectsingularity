@@ -35,6 +35,7 @@ public class User implements UserDetails, Principal {
     private String password;
     private String firstName;
     private String lastName;
+    private boolean isOnboardingComplete;
 
     @Column(unique = true)
     private String email;
@@ -91,5 +92,13 @@ public class User implements UserDetails, Principal {
 
     public String getFullName() {
         return firstName + " " + lastName;
+    }
+
+    public boolean isOnboardingComplete() {
+        return isOnboardingComplete;
+    }
+
+    public void setOnboardingComplete(boolean onboardingComplete) {
+        this.isOnboardingComplete = onboardingComplete;
     }
 }

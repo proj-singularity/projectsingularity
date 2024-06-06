@@ -14,6 +14,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -27,6 +28,7 @@ import org.springframework.web.filter.CorsFilter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.projectsingularity.backend.auth.entities.User;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -143,6 +145,16 @@ public class SecurityConfig {
                                                 .permitAll())
                                 .exceptionHandling(exceptionHandling -> exceptionHandling
                                                 .authenticationEntryPoint((request, response, authException) -> {
+                                                        Authentication auth = SecurityContextHolder.getContext()
+                                                                        .getAuthentication();
+                                                        if (auth != null && auth.isAuthenticated()) {
+                                                                User user = (User) auth.getPrincipal();
+
+                                                                if (!user.isOnboardingComplete()) {
+                                                                        response.sendRedirect("/onboarding");
+                                                                        return;
+                                                                }
+                                                        }
                                                         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                                                         response.setContentType("application/json");
                                                         response.getWriter().write(
