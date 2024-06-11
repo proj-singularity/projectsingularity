@@ -39,7 +39,7 @@ server:
 
 logging:
   level:
-    org.springframework.security: DEBUG
+    org.springframework.security: TRACE
 
 mailing:
   frontend:

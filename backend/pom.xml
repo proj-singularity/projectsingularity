@@ -121,7 +121,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>com.projectsingularity.backend.BackendApplication</mainClass> <!-- Replace with your main class -->
+                            <mainClass>com.projectsingularity.backend.BackendApplication</mainClass> 
                         </manifest>
                     </archive>
                 </configuration>

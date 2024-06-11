@@ -4,13 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -18,24 +19,33 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.csrf.CsrfTokenRequestHandler;
+import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
 import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisHttpSession;
-
+import org.springframework.util.StringUtils;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.projectsingularity.backend.auth.entities.User;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.function.Supplier;
 
 @Configuration
 @EnableWebSecurity
@@ -50,17 +60,13 @@ public class SecurityConfig {
                 final CorsConfiguration config = new CorsConfiguration();
                 config.setAllowCredentials(true);
                 config.setAllowedOrigins(Collections.singletonList("http://localhost:5173"));
-                config.setAllowedHeaders(Arrays.asList(
-                                HttpHeaders.ORIGIN,
-                                HttpHeaders.CONTENT_TYPE,
-                                HttpHeaders.ACCEPT,
-                                HttpHeaders.AUTHORIZATION));
                 config.setAllowedMethods(Arrays.asList(
                                 "GET",
                                 "POST",
                                 "DELETE",
                                 "PUT",
                                 "PATCH"));
+
                 source.registerCorsConfiguration("/**", config);
                 return new CorsFilter(source);
 
@@ -123,7 +129,12 @@ public class SecurityConfig {
                                         response.getWriter().flush();
                                 });
                 http
-                                .csrf(AbstractHttpConfigurer::disable)
+                                .csrf((csrf) -> csrf
+                                                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                                                .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
+                                                .ignoringRequestMatchers("/api/auth/**", "/health"))
+                                .addFilterAfter(new CsrfCookieFilter(), customUsernamePasswordAuthFilter.getClass())
+
                                 .authorizeHttpRequests(request -> request
                                                 .requestMatchers("/api/auth/**").permitAll()
                                                 .requestMatchers("/health").permitAll()
@@ -139,8 +150,8 @@ public class SecurityConfig {
                                                         response.getWriter().write("{\"success\": true}");
                                                         response.getWriter().flush();
                                                 })
-                                                .invalidateHttpSession(true) // specifies that the HttpSession should be
-                                                                             // invalidated when the user logs out
+                                                .invalidateHttpSession(true)
+
                                                 .deleteCookies("SESSION")
                                                 .permitAll())
                                 .exceptionHandling(exceptionHandling -> exceptionHandling
@@ -183,5 +194,39 @@ public class SecurityConfig {
         @Bean
         public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
                 return config.getAuthenticationManager();
+        }
+}
+
+final class SpaCsrfTokenRequestHandler extends CsrfTokenRequestAttributeHandler {
+        private final CsrfTokenRequestHandler delegate = new XorCsrfTokenRequestAttributeHandler();
+
+        @Override
+        public void handle(HttpServletRequest request, HttpServletResponse response, Supplier<CsrfToken> csrfToken) {
+                this.delegate.handle(request, response, csrfToken);
+        }
+
+        @Override
+        public String resolveCsrfTokenValue(HttpServletRequest request, CsrfToken csrfToken) {
+
+                if (StringUtils.hasText(request.getHeader(csrfToken.getHeaderName()))) {
+                        return super.resolveCsrfTokenValue(request, csrfToken);
+
+                }
+
+                return this.delegate.resolveCsrfTokenValue(request, csrfToken);
+        }
+}
+
+final class CsrfCookieFilter extends OncePerRequestFilter {
+
+        @Override
+        protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
+                        @NonNull FilterChain filterChain)
+                        throws ServletException, IOException {
+                CsrfToken csrfToken = (CsrfToken) request.getAttribute("_csrf");
+
+                csrfToken.getToken();
+
+                filterChain.doFilter(request, response);
         }
 }
