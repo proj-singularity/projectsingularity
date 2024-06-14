@@ -1,4 +1,4 @@
-package com.projectsingularity.backend.auth.repositories;
+package com.projectsingularity.backend.user.repositories;
 
 import com.projectsingularity.backend.auth.entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;

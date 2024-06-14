@@ -19,7 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.intercept.AuthorizationFilter;
+
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfToken;
@@ -140,6 +140,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/health").permitAll()
                                                 .anyRequest().authenticated())
                                 .formLogin(formLogin -> formLogin.disable())
+
                                 .securityContext(context -> context.requireExplicitSave(false))
                                 .logout(logout -> logout
                                                 .logoutUrl("/api/auth/logout")

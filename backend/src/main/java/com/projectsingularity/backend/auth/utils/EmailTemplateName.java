@@ -5,7 +5,8 @@ import lombok.Getter;
 @Getter
 public enum EmailTemplateName {
 
-    VERIFY_EMAIL("verify_email");
+    VERIFY_EMAIL("verify_email"),
+    RESET_PASSWORD("reset_password");
 
     private final String name;
 

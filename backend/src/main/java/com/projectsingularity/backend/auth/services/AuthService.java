@@ -2,6 +2,7 @@ package com.projectsingularity.backend.auth.services;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+
 import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
@@ -17,10 +18,11 @@ import com.projectsingularity.backend.auth.dtos.RegisterDTO;
 import com.projectsingularity.backend.auth.entities.Token;
 import com.projectsingularity.backend.auth.entities.User;
 import com.projectsingularity.backend.auth.repositories.TokenRepository;
-import com.projectsingularity.backend.auth.repositories.UserRepository;
 import com.projectsingularity.backend.auth.utils.EmailTemplateName;
+import com.projectsingularity.backend.user.repositories.UserRepository;
 
 import jakarta.mail.MessagingException;
+
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -102,6 +104,17 @@ public class AuthService implements UserDetailsService {
                 "http://localhost:5000/verification?token=" + verificationCode,
                 verificationCode,
                 "Account Verification");
+    }
+
+    private void sendPasswordResetEmail(User user, String resetCode) throws MessagingException {
+
+        emailService.sendEmail(
+                user.getEmail(),
+                user.getFullName(),
+                EmailTemplateName.RESET_PASSWORD,
+                "http://localhost:5000/confirm-reset?token=" + resetCode,
+                resetCode,
+                "Password Reset");
     }
 
     private String saveVerificationToken(User user) {
