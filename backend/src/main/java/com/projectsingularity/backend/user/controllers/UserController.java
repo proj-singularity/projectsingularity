@@ -31,7 +31,6 @@ public class UserController {
     public ResponseEntity<?> changePassword(@RequestBody PasswordChangeDto passwordChangeDto,
             @AuthenticationPrincipal User principal, HttpServletRequest request, HttpServletResponse response) {
         try {
-            System.out.println("Change password request received");
             userService.changePassword(passwordChangeDto, principal);
 
             SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();

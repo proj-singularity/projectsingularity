@@ -18,6 +18,8 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
+import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -29,6 +31,7 @@ import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler
 import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisHttpSession;
 import org.springframework.util.StringUtils;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -44,7 +47,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
+
 import java.util.function.Supplier;
 
 @Configuration
@@ -55,21 +58,15 @@ import java.util.function.Supplier;
 public class SecurityConfig {
 
         @Bean
-        public CorsFilter corsFilter() {
-                final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-                final CorsConfiguration config = new CorsConfiguration();
-                config.setAllowCredentials(true);
-                config.setAllowedOrigins(Collections.singletonList("http://localhost:5173"));
-                config.setAllowedMethods(Arrays.asList(
-                                "GET",
-                                "POST",
-                                "DELETE",
-                                "PUT",
-                                "PATCH"));
-
-                source.registerCorsConfiguration("/**", config);
-                return new CorsFilter(source);
-
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration configuration = new CorsConfiguration();
+                configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
+                configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH"));
+                configuration.setAllowedHeaders(Arrays.asList("*"));
+                configuration.setAllowCredentials(true);
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", configuration);
+                return source;
         }
 
         @Bean
@@ -129,6 +126,8 @@ public class SecurityConfig {
                                         response.getWriter().flush();
                                 });
                 http
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
                                 .csrf((csrf) -> csrf
                                                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                                                 .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
@@ -196,6 +195,13 @@ public class SecurityConfig {
         public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
                 return config.getAuthenticationManager();
         }
+
+        // @Bean
+        // public UserDetailsManager userDetailsManager(DataSource dataSource) {
+        // JdbcUserDetailsManager userDetailsManager = new JdbcUserDetailsManager();
+        // userDetailsManager.setDataSource(dataSource);
+        // return userDetailsManager;
+        // }
 }
 
 final class SpaCsrfTokenRequestHandler extends CsrfTokenRequestAttributeHandler {

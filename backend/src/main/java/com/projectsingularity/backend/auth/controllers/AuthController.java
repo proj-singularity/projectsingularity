@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.projectsingularity.backend.auth.dtos.RegisterDTO;
 
 import com.projectsingularity.backend.auth.services.AuthService;
+import com.projectsingularity.backend.globalutils.ApiResponse;
 import com.projectsingularity.backend.globalutils.ResponseHandler;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,16 +35,16 @@ public class AuthController {
     public ResponseEntity<?> register(@Valid @RequestBody RegisterDTO registerDTO, HttpServletRequest request) {
         try {
             authService.registerUser(registerDTO);
-            return ResponseHandler.createResponse("Registered Successfully! Check Email", HttpStatus.CREATED);
+            return ResponseHandler.createResponse("Registered Successfully! Please check your email",
+                    HttpStatus.CREATED);
         } catch (Exception e) {
             return ResponseHandler.createResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
     @GetMapping("verify")
-    public ResponseEntity<?> verify(@RequestParam("token") String token) {
-        authService.verifyEmail(token);
-        return ResponseHandler.createResponse("Email Verified Successfully!", HttpStatus.OK);
+    public ResponseEntity<ApiResponse> verify(@RequestParam("token") String token) {
+        return authService.verifyEmail(token);
     }
 
     @PreAuthorize("isAuthenticated()")

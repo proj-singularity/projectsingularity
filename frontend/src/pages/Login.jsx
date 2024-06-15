@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button, Input } from "@nextui-org/react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Eye, EyeSlash } from "@phosphor-icons/react";
 
 import googleIcon from "/icons/google-icon.svg";
@@ -13,16 +13,17 @@ function LogIn() {
   const [isVisible, setIsVisible] = useState(false);
 
   const toggleVisibility = () => setIsVisible(!isVisible);
+  const navigate = useNavigate();
 
   const mutation = useMutation({
     mutationFn: async (values) => {
-      console.log(values);
       const response = await fetch("http://localhost:8091/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(values.value),
+        body: JSON.stringify(values),
+        credentials: "include",
       });
 
       return response;
@@ -31,6 +32,10 @@ function LogIn() {
 
   const handleLogIn = async (values) => {
     const response = await mutation.mutateAsync(values);
+
+    if (response.ok) {
+      navigate({ to: "/onboarding" });
+    }
     return response;
   };
 

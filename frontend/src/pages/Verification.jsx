@@ -19,22 +19,29 @@ export default function Verification() {
         const response = await fetch(
           `http://localhost:8091/api/auth/verify?token=${token}`
         );
-
         const data = await response.json();
+
+        if (!response.ok) {
+          setMessage(data.message);
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+          navigate({ to: "/signup" });
+        }
+
         setMessage(data.message);
+
         await new Promise((resolve) => setTimeout(resolve, 3000));
-        navigate({ to: "/onboarding" });
+        navigate({ to: "/login" });
       } catch (error) {
         setMessage(error.message);
         await new Promise((resolve) => setTimeout(resolve, 3000));
-        navigate({ to: "/signin" });
+        navigate({ to: "/signup" });
       } finally {
         setLoading(false);
       }
     };
 
     verifyToken();
-  }, []);
+  });
 
   return (
     <div className="flex items-center justify-center h-screen w-screen bg-[#0D001A]">

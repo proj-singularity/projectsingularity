@@ -22,9 +22,9 @@ function SignUp() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(values.value),
+        credentials: "include",
       });
 
-      console.log(response);
       return await response.json();
     },
   });

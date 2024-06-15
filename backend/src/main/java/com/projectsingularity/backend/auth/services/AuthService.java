@@ -19,6 +19,7 @@ import com.projectsingularity.backend.auth.entities.Token;
 import com.projectsingularity.backend.auth.entities.User;
 import com.projectsingularity.backend.auth.repositories.TokenRepository;
 import com.projectsingularity.backend.auth.utils.EmailTemplateName;
+import com.projectsingularity.backend.globalutils.ApiResponse;
 import com.projectsingularity.backend.user.repositories.UserRepository;
 
 import jakarta.mail.MessagingException;
@@ -64,7 +65,7 @@ public class AuthService implements UserDetailsService {
     }
 
     @Transactional
-    public ResponseEntity<?> verifyEmail(String token) {
+    public ResponseEntity<ApiResponse> verifyEmail(String token) {
         try {
             Token savedToken = tokenRepository.findByToken(token)
                     .orElseThrow(
@@ -85,12 +86,15 @@ public class AuthService implements UserDetailsService {
             savedToken.setValidatedAt(LocalDateTime.now());
             tokenRepository.save(savedToken);
 
-            return new ResponseEntity<>("Hurrah! Email verified successfully :) Redirecting you shortly",
-                    HttpStatus.OK);
+            return ResponseEntity
+                    .ok(new ApiResponse(
+                            "Hurrah! Email verified successfully :) Please log in now",
+                            true));
         } catch (RuntimeException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(new ApiResponse(e.getMessage(), false), HttpStatus.BAD_REQUEST);
         } catch (MessagingException e) {
-            return new ResponseEntity<>("Error sending email", HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(new ApiResponse("Error sending email", false),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -101,7 +105,7 @@ public class AuthService implements UserDetailsService {
                 user.getEmail(),
                 user.getFullName(),
                 EmailTemplateName.VERIFY_EMAIL,
-                "http://localhost:5000/verification?token=" + verificationCode,
+                "http://localhost:5173/verification?token=" + verificationCode,
                 verificationCode,
                 "Account Verification");
     }
@@ -112,7 +116,7 @@ public class AuthService implements UserDetailsService {
                 user.getEmail(),
                 user.getFullName(),
                 EmailTemplateName.RESET_PASSWORD,
-                "http://localhost:5000/confirm-reset?token=" + resetCode,
+                "http://localhost:5173/confirm-reset?token=" + resetCode,
                 resetCode,
                 "Password Reset");
     }
