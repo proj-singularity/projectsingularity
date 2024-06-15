@@ -105,7 +105,6 @@ public class SecurityConfig {
                                 return (String) request.getAttribute("password");
                         }
                 };
-                System.out.println(authenticationConfiguration.getAuthenticationManager());
                 customUsernamePasswordAuthFilter.setFilterProcessesUrl("/api/auth/login");
                 customUsernamePasswordAuthFilter.setAuthenticationManager(
                                 authenticationConfiguration.getAuthenticationManager());
@@ -196,12 +195,6 @@ public class SecurityConfig {
                 return config.getAuthenticationManager();
         }
 
-        // @Bean
-        // public UserDetailsManager userDetailsManager(DataSource dataSource) {
-        // JdbcUserDetailsManager userDetailsManager = new JdbcUserDetailsManager();
-        // userDetailsManager.setDataSource(dataSource);
-        // return userDetailsManager;
-        // }
 }
 
 final class SpaCsrfTokenRequestHandler extends CsrfTokenRequestAttributeHandler {
