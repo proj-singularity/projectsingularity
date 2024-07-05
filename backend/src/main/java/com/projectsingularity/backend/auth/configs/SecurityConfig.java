@@ -47,7 +47,6 @@ import java.util.function.Supplier;
 @EnableMethodSecurity(securedEnabled = true)
 @EnableRedisHttpSession
 public class SecurityConfig {
-
         private final CustomAuthenticationSuccessHandler successHandler;
         private final CustomAuthenticationFailureHandler failureHandler;
         private final CorsConfigurationSource corsConfigurationSource;
@@ -61,9 +60,7 @@ public class SecurityConfig {
                 customUsernamePasswordAuthFilter.setFilterProcessesUrl("/api/auth/login");
                 customUsernamePasswordAuthFilter.setAuthenticationManager(
                                 authenticationConfiguration.getAuthenticationManager());
-
                 customUsernamePasswordAuthFilter.setAuthenticationSuccessHandler(successHandler);
-
                 customUsernamePasswordAuthFilter.setAuthenticationFailureHandler(failureHandler);
 
                 http
@@ -74,8 +71,11 @@ public class SecurityConfig {
                                                 .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
                                                 .ignoringRequestMatchers("/api/user/register", "api/auth/login",
                                                                 "api/user/verify", "/health"))
+                                .addFilterBefore(customUsernamePasswordAuthFilter,
+                                                UsernamePasswordAuthenticationFilter.class)
                                 .addFilterAfter(new CsrfCookieFilter(), customUsernamePasswordAuthFilter.getClass())
-
+                                .addFilterAfter(new OnboardingCheckFilter(),
+                                                customUsernamePasswordAuthFilter.getClass())
                                 .authorizeHttpRequests(request -> request
                                                 .requestMatchers("/api/auth/login").permitAll()
                                                 .requestMatchers("/api/user/register").permitAll()
@@ -108,9 +108,6 @@ public class SecurityConfig {
                                                 .maximumSessions(1)
                                                 .maxSessionsPreventsLogin(true)
                                                 .expiredUrl("http://localhost:3000/login"));
-
-                http.addFilterBefore(customUsernamePasswordAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
                 return http.build();
         }
 
@@ -123,7 +120,6 @@ public class SecurityConfig {
         public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
                 return config.getAuthenticationManager();
         }
-
 }
 
 final class SpaCsrfTokenRequestHandler extends CsrfTokenRequestAttributeHandler {
@@ -141,21 +137,17 @@ final class SpaCsrfTokenRequestHandler extends CsrfTokenRequestAttributeHandler 
                         return super.resolveCsrfTokenValue(request, csrfToken);
 
                 }
-
                 return this.delegate.resolveCsrfTokenValue(request, csrfToken);
         }
 }
 
 final class CsrfCookieFilter extends OncePerRequestFilter {
-
         @Override
         protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
                         @NonNull FilterChain filterChain)
                         throws ServletException, IOException {
                 CsrfToken csrfToken = (CsrfToken) request.getAttribute("_csrf");
-
                 csrfToken.getToken();
-
                 filterChain.doFilter(request, response);
         }
 }
