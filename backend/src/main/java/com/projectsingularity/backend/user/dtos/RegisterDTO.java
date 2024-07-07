@@ -1,4 +1,4 @@
-package com.projectsingularity.backend.auth.dtos;
+package com.projectsingularity.backend.user.dtos;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

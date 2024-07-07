@@ -1,12 +1,16 @@
 package com.projectsingularity.backend.globalutils;
 
+import org.springframework.http.HttpStatus;
+
 public class ApiResponse {
     private String message;
     private boolean success;
+    private HttpStatus status;
 
-    public ApiResponse(String message, boolean success) {
+    public ApiResponse(String message, boolean success, HttpStatus status) {
         this.message = message;
         this.success = success;
+        this.status = status;
     }
 
     // Getters and Setters
@@ -24,5 +28,13 @@ public class ApiResponse {
 
     public void setSuccess(boolean success) {
         this.success = success;
+    }
+
+    public HttpStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(HttpStatus status) {
+        this.status = status;
     }
 }

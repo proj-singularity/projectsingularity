@@ -6,20 +6,17 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationServiceException;
+
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.context.SecurityContextHolder;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.JdbcUserDetailsManager;
-import org.springframework.security.provisioning.UserDetailsManager;
+
 import org.springframework.security.web.SecurityFilterChain;
 
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -30,15 +27,10 @@ import org.springframework.security.web.csrf.CsrfTokenRequestHandler;
 import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
 import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisHttpSession;
 import org.springframework.util.StringUtils;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
-import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.projectsingularity.backend.auth.entities.User;
+import org.springframework.web.cors.CorsConfigurationSource;
+
+import org.springframework.web.filter.OncePerRequestFilter;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -46,7 +38,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 import java.util.function.Supplier;
 
@@ -56,85 +47,39 @@ import java.util.function.Supplier;
 @EnableMethodSecurity(securedEnabled = true)
 @EnableRedisHttpSession
 public class SecurityConfig {
-
-        @Bean
-        public CorsConfigurationSource corsConfigurationSource() {
-                CorsConfiguration configuration = new CorsConfiguration();
-                configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
-                configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH"));
-                configuration.setAllowedHeaders(Arrays.asList("*"));
-                configuration.setAllowCredentials(true);
-                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-                source.registerCorsConfiguration("/**", configuration);
-                return source;
-        }
+        private final CustomAuthenticationSuccessHandler successHandler;
+        private final CustomAuthenticationFailureHandler failureHandler;
+        private final CorsConfigurationSource corsConfigurationSource;
 
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http,
                         AuthenticationConfiguration authenticationConfiguration)
                         throws Exception {
-                UsernamePasswordAuthenticationFilter customUsernamePasswordAuthFilter = new UsernamePasswordAuthenticationFilter() {
+                CustomAuthenticationFilter customUsernamePasswordAuthFilter = new CustomAuthenticationFilter();
 
-                        private final ObjectMapper objectMapper = new ObjectMapper();
-
-                        @Override
-                        public Authentication attemptAuthentication(HttpServletRequest request,
-                                        HttpServletResponse response)
-                                        throws AuthenticationException {
-                                try {
-                                        JsonNode node = objectMapper.readTree(request.getInputStream());
-                                        String username = node.get("email").textValue();
-                                        String password = node.get("password").textValue();
-
-                                        request.setAttribute("username", username);
-                                        request.setAttribute("password", password);
-                                } catch (IOException e) {
-                                        throw new AuthenticationServiceException("ERROR READING REQUEST", e);
-                                }
-
-                                return super.attemptAuthentication(request, response);
-                        }
-
-                        @Override
-                        protected String obtainUsername(HttpServletRequest request) {
-                                return (String) request.getAttribute("username");
-                        }
-
-                        @Override
-                        protected String obtainPassword(HttpServletRequest request) {
-                                return (String) request.getAttribute("password");
-                        }
-                };
                 customUsernamePasswordAuthFilter.setFilterProcessesUrl("/api/auth/login");
                 customUsernamePasswordAuthFilter.setAuthenticationManager(
                                 authenticationConfiguration.getAuthenticationManager());
+                customUsernamePasswordAuthFilter.setAuthenticationSuccessHandler(successHandler);
+                customUsernamePasswordAuthFilter.setAuthenticationFailureHandler(failureHandler);
 
-                customUsernamePasswordAuthFilter
-                                .setAuthenticationSuccessHandler((request, response, authentication) -> {
-                                        response.setStatus(200);
-                                        response.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-                                        response.getWriter().write("{\"success\": true}");
-                                        response.getWriter().flush();
-                                });
-
-                customUsernamePasswordAuthFilter.setAuthenticationFailureHandler(
-                                (request, response, exception) -> {
-                                        response.setStatus(401);
-                                        response.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-                                        response.getWriter().write("{\"success\": false}");
-                                        response.getWriter().flush();
-                                });
                 http
-                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource))
 
                                 .csrf((csrf) -> csrf
                                                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                                                 .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
-                                                .ignoringRequestMatchers("/api/auth/**", "/health"))
+                                                .ignoringRequestMatchers("/api/user/register", "api/auth/login",
+                                                                "api/user/verify", "/health"))
+                                .addFilterBefore(customUsernamePasswordAuthFilter,
+                                                UsernamePasswordAuthenticationFilter.class)
                                 .addFilterAfter(new CsrfCookieFilter(), customUsernamePasswordAuthFilter.getClass())
-
+                                // .addFilterAfter(new OnboardingCheckFilter(),
+                                // customUsernamePasswordAuthFilter.getClass())
                                 .authorizeHttpRequests(request -> request
-                                                .requestMatchers("/api/auth/**").permitAll()
+                                                .requestMatchers("/api/auth/login").permitAll()
+                                                .requestMatchers("/api/user/register").permitAll()
+                                                .requestMatchers("/api/user/verify").permitAll()
                                                 .requestMatchers("/health").permitAll()
                                                 .anyRequest().authenticated())
                                 .formLogin(formLogin -> formLogin.disable())
@@ -153,35 +98,16 @@ public class SecurityConfig {
 
                                                 .deleteCookies("SESSION")
                                                 .permitAll())
-                                .exceptionHandling(exceptionHandling -> exceptionHandling
-                                                .authenticationEntryPoint((request, response, authException) -> {
-                                                        Authentication auth = SecurityContextHolder.getContext()
-                                                                        .getAuthentication();
-                                                        if (auth != null && auth.isAuthenticated()) {
-                                                                User user = (User) auth.getPrincipal();
-
-                                                                if (!user.isOnboardingComplete()) {
-                                                                        response.sendRedirect("/onboarding");
-                                                                        return;
-                                                                }
-                                                        }
-                                                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                                                        response.setContentType("application/json");
-                                                        response.getWriter().write(
-                                                                        "{\"message\": \"You need to log in first.\"}");
-                                                        response.getWriter().flush();
-                                                }))
+                                .exceptionHandling(exception -> exception
+                                                .authenticationEntryPoint(new CustomAuthenticationEntryPoint()))
                                 .sessionManagement(s -> s
                                                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                                                 .sessionFixation().migrateSession()
-                                                .invalidSessionUrl("http://localhost:5173/login")
-                                                .sessionAuthenticationErrorUrl("http://localhost:5173/login")
+                                                .invalidSessionUrl("http://localhost:3000/login")
+                                                .sessionAuthenticationErrorUrl("http://localhost:3000/login")
                                                 .maximumSessions(1)
                                                 .maxSessionsPreventsLogin(true)
-                                                .expiredUrl("http://localhost:5173/login"));
-
-                http.addFilterBefore(customUsernamePasswordAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
+                                                .expiredUrl("http://localhost:3000/login"));
                 return http.build();
         }
 
@@ -194,7 +120,6 @@ public class SecurityConfig {
         public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
                 return config.getAuthenticationManager();
         }
-
 }
 
 final class SpaCsrfTokenRequestHandler extends CsrfTokenRequestAttributeHandler {
@@ -212,21 +137,17 @@ final class SpaCsrfTokenRequestHandler extends CsrfTokenRequestAttributeHandler 
                         return super.resolveCsrfTokenValue(request, csrfToken);
 
                 }
-
                 return this.delegate.resolveCsrfTokenValue(request, csrfToken);
         }
 }
 
 final class CsrfCookieFilter extends OncePerRequestFilter {
-
         @Override
         protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
                         @NonNull FilterChain filterChain)
                         throws ServletException, IOException {
                 CsrfToken csrfToken = (CsrfToken) request.getAttribute("_csrf");
-
                 csrfToken.getToken();
-
                 filterChain.doFilter(request, response);
         }
 }
