@@ -2,13 +2,17 @@ package com.projectsingularity.backend.user.services;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.Optional;
 
+import org.apache.catalina.security.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.UserDetailsManager;
@@ -23,9 +27,11 @@ import com.projectsingularity.backend.auth.utils.EmailTemplateName;
 import com.projectsingularity.backend.globalutils.ApiResponse;
 import com.projectsingularity.backend.user.dtos.PasswordChangeDto;
 import com.projectsingularity.backend.user.dtos.RegisterDTO;
+import com.projectsingularity.backend.user.dtos.UserResponse;
 import com.projectsingularity.backend.user.repositories.UserRepository;
 
 import jakarta.mail.MessagingException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -116,6 +122,14 @@ public class UserService {
         }
 
         return codeBuilder.toString();
+    }
+
+    @Transactional
+    public UserResponse getSession(HttpServletRequest request) {
+        User user = com.projectsingularity.backend.auth.utils.SecurityUtil.getAuthenticatedUser();
+        Collection<? extends GrantedAuthority> authorities = SecurityContextHolder.getContext().getAuthentication()
+                .getAuthorities();
+        return new UserResponse(user, authorities);
     }
 
     @Transactional

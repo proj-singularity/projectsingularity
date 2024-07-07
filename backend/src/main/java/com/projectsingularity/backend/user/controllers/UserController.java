@@ -18,6 +18,7 @@ import com.projectsingularity.backend.globalutils.ApiResponse;
 
 import com.projectsingularity.backend.user.dtos.PasswordChangeDto;
 import com.projectsingularity.backend.user.dtos.RegisterDTO;
+import com.projectsingularity.backend.user.dtos.UserResponse;
 import com.projectsingularity.backend.user.services.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,6 +40,11 @@ public class UserController {
         } catch (Exception e) {
             return new ApiResponse(e.getMessage(), false, HttpStatus.BAD_REQUEST);
         }
+    }
+
+    @GetMapping("me")
+    public ResponseEntity<UserResponse> getSession(HttpServletRequest request) {
+        return ResponseEntity.ok(userService.getSession(request));
     }
 
     @GetMapping("verify")

@@ -74,8 +74,8 @@ public class SecurityConfig {
                                 .addFilterBefore(customUsernamePasswordAuthFilter,
                                                 UsernamePasswordAuthenticationFilter.class)
                                 .addFilterAfter(new CsrfCookieFilter(), customUsernamePasswordAuthFilter.getClass())
-                                .addFilterAfter(new OnboardingCheckFilter(),
-                                                customUsernamePasswordAuthFilter.getClass())
+                                // .addFilterAfter(new OnboardingCheckFilter(),
+                                // customUsernamePasswordAuthFilter.getClass())
                                 .authorizeHttpRequests(request -> request
                                                 .requestMatchers("/api/auth/login").permitAll()
                                                 .requestMatchers("/api/user/register").permitAll()
