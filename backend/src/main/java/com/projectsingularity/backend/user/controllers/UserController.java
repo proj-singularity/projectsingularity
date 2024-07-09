@@ -1,5 +1,6 @@
 package com.projectsingularity.backend.user.controllers;
 
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -33,12 +34,19 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("register")
-    public ApiResponse register(@Valid @RequestBody RegisterDTO registerDTO, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse> register(@Valid @RequestBody RegisterDTO registerDTO,
+            HttpServletRequest request) {
         try {
             userService.registerUser(registerDTO);
-            return new ApiResponse("User Created", true, HttpStatus.CREATED);
+            return ResponseEntity
+                    .status(HttpStatus.CREATED)
+                    .body(new ApiResponse("Registered successfully! Please check your mail for a verification link",
+                            true, HttpStatus.CREATED));
+
         } catch (Exception e) {
-            return new ApiResponse(e.getMessage(), false, HttpStatus.BAD_REQUEST);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse(e.getMessage(), false, HttpStatus.INTERNAL_SERVER_ERROR));
         }
     }
 
